@@ -19,6 +19,32 @@ The sections below assume you are logged into to your gokrazy device using
 podman run --rm -ti docker.io/library/debian:sid
 ```
 
+#### Docker API socket
+
+To run the podman API server in the foreground (e.g. via breakglass):
+
+```
+podman --socket /run/podman/podman.sock
+```
+
+The process creates a symlink from `/var/run/docker.sock` to the given path
+(unless the path is `/var/run/docker.sock` itself), sets `DOCKER_HOST` for the
+service process, and runs `podman system service` in the foreground.
+
+On gokrazy, configure this as a service in your `config.json`:
+
+```json
+{
+    "PackageConfig": {
+        "github.com/gokrazy/podman": {
+            "CommandLineFlags": [
+                "--socket", "/run/podman/podman.sock"
+            ]
+        }
+    }
+}
+```
+
 #### Optional: tmpfs
 
 By default, containers are stored on disk (`/var` is a symlink to `/perm/var` on
