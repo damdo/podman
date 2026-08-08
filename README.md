@@ -27,9 +27,8 @@ To run the podman API server in the foreground (e.g. via breakglass):
 podman --socket /run/podman/podman.sock
 ```
 
-The process creates a symlink from `/var/run/docker.sock` to the given path
-(unless the path is `/var/run/docker.sock` itself), sets `DOCKER_HOST` for the
-service process, and runs `podman system service` in the foreground.
+The process runs `podman system service` in the foreground with
+`DOCKER_HOST` set.
 
 On gokrazy, configure this as a service in your `config.json`:
 

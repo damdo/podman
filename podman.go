@@ -16,8 +16,6 @@ import (
 	"syscall"
 )
 
-const defaultDockerSocket = "/var/run/docker.sock"
-
 func isMounted(mountpoint string) (bool, error) {
 	b, err := ioutil.ReadFile("/proc/self/mountinfo")
 	if err != nil {
@@ -81,23 +79,18 @@ func makeWritable(dir string) error {
 func runService(socketPath string) {
 	uri := "unix://" + socketPath
 
-	if err := os.MkdirAll(filepath.Dir(socketPath), 0755); err != nil {
-		log.Fatalf("creating socket directory: %v", err)
-	}
-
-	if socketPath != defaultDockerSocket {
-		if _, err := os.Lstat(defaultDockerSocket); err == nil {
-			log.Fatal(defaultDockerSocket + " already exists, refusing to overwrite")
-		}
-		if err := os.Symlink(socketPath, defaultDockerSocket); err != nil {
-			log.Fatalf("creating symlink %s -> %s: %v", defaultDockerSocket, socketPath, err)
+	for _, dir := range []string{
+		filepath.Dir(socketPath),
+		"/var/tmp",
+	} {
+		if err := os.MkdirAll(dir, 01777); err != nil {
+			log.Fatalf("creating directory %s: %v", dir, err)
 		}
 	}
 
-	cmd := exec.Command("/usr/local/bin/podman", "system", "service", "--time=0", uri)
+	cmd := exec.Command("/usr/local/bin/podman", "system", "service", "--time=0", "--log-level=debug", uri)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Env = append(os.Environ(), "DOCKER_HOST="+uri)
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
@@ -125,7 +118,7 @@ func runService(socketPath string) {
 }
 
 func main() {
-	socketPath := flag.String("socket", "", "Run as API daemon on given socket path; this also creates a symlink from /var/run/docker.sock")
+	socketPath := flag.String("socket", "", "Run as API daemon on given socket path")
 	flag.Parse()
 
 	// netavark invokes nft and pipes rules via /dev/stdin, which doesn't
